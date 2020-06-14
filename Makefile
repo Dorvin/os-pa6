@@ -1,7 +1,7 @@
 # SNU ----------------------------------------------------
 # Please specify the PA number and your student ID:
 PANUM = PA6
-STUDENTID =
+STUDENTID = 2017-10488
 
 ifndef PANUM
 $(error Please set PANUM in Makefile)
