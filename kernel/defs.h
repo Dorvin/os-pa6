@@ -81,6 +81,7 @@ void            panic(char*) __attribute__((noreturn));
 void            printfinit(void);
 
 // proc.c
+int             allocpid(void);
 int             cpuid(void);
 void            exit(int);
 int             fork(void);
@@ -189,6 +190,7 @@ void            virtio_disk_intr();
 #define KERN_DEF_PRIO   50        // default kernel thread priority
 
 int             kthread_create(const char *, int, void (*)(void *), void *);
+void            kthread_wrapper(void);
 void            kthread_exit(void);
 void            kthread_yield(void);
 void            kthread_set_prio(int);

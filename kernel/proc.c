@@ -143,6 +143,7 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->prio = 120;
 }
 
 // Create a page table for a given process,
@@ -214,6 +215,8 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+  // set prio to user default
+  p->prio = 120;
 
   release(&p->lock);
 }
@@ -279,6 +282,8 @@ fork(void)
   pid = np->pid;
 
   np->state = RUNNABLE;
+
+  np->prio = p->prio;
 
   release(&np->lock);
 
