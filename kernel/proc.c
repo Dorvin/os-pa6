@@ -447,27 +447,61 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *high_procs[NPROC];
+  int high_prio = 200;
+  int high_count = 0;
   struct cpu *c = mycpu();
-  
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
+    high_prio = 200;
+    high_count = 0;
+
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->scheduler, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
+        if(p->prio < high_prio){
+          high_prio = p->prio;
+          high_count = 0;
+          high_procs[high_count++] = p;
+        } else if(p->prio == high_prio){
+          high_procs[high_count++] = p;
+        }
       }
+      release(&p->lock);
+    }
+    // If there are multiple highest priority tasks with the same priority,
+    // those tasks should be run in a round-robin fashion.
+    for(int i=0; i<high_count; i++){
+      // check whether high_prio is still highest prio
+      int temp_high_prio = 200;
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          if(p->prio < temp_high_prio){
+            temp_high_prio = p->prio;
+          }
+        }
+        release(&p->lock);
+      }
+      // if not, just start new iteration
+      if(temp_high_prio != high_prio){
+        break;
+      }
+      // now, let's schedule in round-robin fashion.
+      p = high_procs[i];
+      acquire(&p->lock);
+      // Switch to chosen process.  It is the process's job
+      // to release its lock and then reacquire it
+      // before jumping back to us.
+      p->state = RUNNING;
+      c->proc = p;
+      swtch(&c->scheduler, &p->context);
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
       release(&p->lock);
     }
   }
