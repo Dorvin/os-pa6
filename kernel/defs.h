@@ -196,6 +196,7 @@ void            kthread_yield(void);
 void            kthread_set_prio(int);
 int             kthread_get_prio(void);
 int             kthtest(int);
+int             kthread_get_eff(struct proc*, int);
 #endif
 
 // number of elements in fixed-size array

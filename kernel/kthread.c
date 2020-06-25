@@ -21,6 +21,7 @@
 #include "sleeplock.h"
 #include "proc.h"
 #include "defs.h"
+#include <stddef.h>
 
 // kernel page table structure defined in vm.c
 extern pagetable_t kernel_pagetable;
@@ -66,6 +67,12 @@ found:
 
   // make thread RUNNABLE
   p->state = RUNNABLE;
+
+  for(int i=0; i<100; i++){
+    p->lockon[i] = NULL;
+  }
+
+  p->is_thread = 1;
 
   // release lock
   release(&p->lock);
@@ -123,6 +130,49 @@ int
 kthread_get_prio(void)
 {
   // for now, just use base priority
-  return myproc()->prio;
+  // return myproc()->prio;
+
+  // return effective priority! with depth 2
+  return kthread_get_eff(myproc(), 2);
+}
+
+int
+kthread_get_eff(struct proc *p, int depth){
+  // for user
+  if(!p->is_thread){
+    return p->prio;
+  }
+  int lk_count = 0;
+  int high_prio = p->prio;
+  int temp;
+  // base case
+  for(int i=0; i<100; i++){
+    if(p->lockon[i] != NULL){
+      for(int j=0; j<100; j++){
+        if(p->lockon[i]->involved[j] != NULL && p->lockon[i]->involved[j] != p){
+          lk_count++;
+        }
+      }
+    }
+  }
+  if(lk_count == 0 || depth == 0){
+    return p->prio;
+  }
+
+  depth--;
+  // recursive case
+  for(int i=0; i<100; i++){
+    if(p->lockon[i] != NULL){
+      for(int j=0; j<100; j++){
+        if(p->lockon[i]->involved[j] != NULL && p->lockon[i]->involved[j] != p){
+          if((temp = kthread_get_eff(p->lockon[i]->involved[j], depth)) < high_prio && p->lockon[i]->donate_to[j] == p->pid){
+            //printf("%s donate to %s with prio %d... when high_prio is %d\n", p->lockon[i]->involved[j]->name, p->name, temp, high_prio);
+            high_prio = temp;
+          }
+        }
+      }
+    }
+  }
+  return high_prio;
 }
 #endif

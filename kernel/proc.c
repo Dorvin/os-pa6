@@ -144,6 +144,7 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->state = UNUSED;
   p->prio = 120;
+  p->is_thread = 0;
 }
 
 // Create a page table for a given process,
@@ -217,6 +218,8 @@ userinit(void)
   p->state = RUNNABLE;
   // set prio to user default
   p->prio = 120;
+  // it is user
+  p->is_thread = 0;
 
   release(&p->lock);
 }
@@ -284,6 +287,8 @@ fork(void)
   np->state = RUNNABLE;
 
   np->prio = p->prio;
+
+  p->is_thread = 0;
 
   release(&np->lock);
 
@@ -462,8 +467,10 @@ scheduler(void)
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        if(p->prio < high_prio){
-          high_prio = p->prio;
+        //if(p->prio < high_prio){
+        if(kthread_get_eff(p, 2) < high_prio){
+          //high_prio = p->prio;
+          high_prio = kthread_get_eff(p, 2);
           high_count = 0;
           high_procs[high_count++] = p;
         } else if(p->prio == high_prio){
@@ -480,8 +487,10 @@ scheduler(void)
       for(p = proc; p < &proc[NPROC]; p++) {
         acquire(&p->lock);
         if(p->state == RUNNABLE) {
-          if(p->prio < temp_high_prio){
-            temp_high_prio = p->prio;
+          //if(p->prio < temp_high_prio){
+          if(kthread_get_eff(p, 2) < temp_high_prio){
+            //temp_high_prio = p->prio;
+            temp_high_prio = kthread_get_eff(p, 2);
           }
         }
         release(&p->lock);

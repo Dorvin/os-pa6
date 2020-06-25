@@ -110,4 +110,10 @@ struct proc {
 
   // for priority
   int prio;
+
+  // proc can hold locks
+  struct sleeplock *lockon[100];
+
+  // diff kthread from normal proc
+  int is_thread;
 };
